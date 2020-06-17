@@ -46,7 +46,7 @@ save_path = "C:/Users/ls16959/Data/04_Calculations/CAMELS/"
 # Functions ---------------------------------------------------------------
 
 #read flood classification functions (from Stein et al, 2019)
-source("C:/Users/ls16959/OneDrive - University of Bristol/Documents/1_Data/Code_by_me/function_file_global_flood_classification.R")
+source("C:/Users/ls16959/OneDrive - University of Bristol/Documents/1_Data/Code_by_me/variable_method_flood_mech_functions.R")
 
 #read in observed streamflow from CAMELS data
 read_qobs = function(gauge_id, filepaths){
@@ -796,8 +796,12 @@ clim_col_vec = c("#E7B800","#FC4E07", "#00AFBB")
 #labels suitable for ggplot facets 
 process_fulllabel = c('soilsat'= "Excess rainfall", 'rainfall' = "Short rainfall",  'longrainfall' = "Long rainfall", 'snowmelt' = "Snowmelt",'rainandsnow' = "Rainfall/Snowmelt")
 
+
 #CAMELS attribute labels
 CAMELS_labels = c(strsplit(readLines('C:/Users/ls16959/Data/streamflow_countries/US/Camels/CAMELS_parameter_labels.txt', warn = F), split = ', ')[[1]])
+
+attr_fulllabel = CAMELS_labels
+names(attr_fulllabel) = colnames(attr_cont)
 
 
 #Shift legend to empty facet function
@@ -895,9 +899,6 @@ corr_df = do.call(rbind, corr_df)
 corr_df[,"attr1"] = factor(corr_df$X1, levels = unique(corr_df$X1))
 corr_df[,"attr2"] = factor(corr_df$X2, levels = rev(unique(corr_df$X2)))
 
-# ggplot(corr_df, aes(attr1, attr2, col = value, size = abs(value)))+geom_point()+scale_colour_gradient2(limits = c(-1, 1))+theme_bw()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0), axis.title = element_blank())+scale_x_discrete(position = "top")+scale_size(range = c(0.3, 2))+geom_hline(yintercept = c(5.5, 14.5, 25.5, 30.5,33.5))+geom_vline(xintercept = c(5.5, 14.5, 25.5, 30.5,33.5))+facet_wrap(~clim, nrow = 3, strip.position = "right")
-# ggsave(filename = paste0(plot_path, "CAMELS_attr_corr_clim.pdf"), dpi = 'retina', width = 6, height = 12)
-
 
 ggplot(corr_df, aes(attr1, attr2, col = value))+geom_point()+scale_colour_gradient2(limits = c(-1, 1), name = expression(rho))+theme_bw()+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0), axis.title = element_blank())+scale_x_discrete(position = "top")+geom_hline(yintercept = c(3.5, 8.5, 19.5, 28.5))+geom_vline(xintercept = c(4.5, 13.5, 24.5, 29.5))+facet_wrap(~clim, nrow = 3, strip.position = "right")+strip_theme
 ggsave(filename = paste0(plot_path, "CAMELS_attr_corr_clim.pdf"), dpi = 'retina', width = 6, height = 12)
@@ -938,8 +939,30 @@ tempmelt = do.call(rbind, lapply(clim_label_vec, function(clim){
   melt(data.frame(cat_no = c(1:nrow(count_mechdf[clim_index == clim,])), count_mechdf[clim_index == clim,], clim_index = clim_index[clim_index == clim]), id.vars = c('cat_no', 'clim_index'))
 }))
 
-ggplot(tempmelt, aes(cat_no, 100*value, fill = variable))+geom_bar(stat = 'identity', width=1)+scale_fill_manual(name = "Flood process", labels = process_fulllabel, values = c(Excessrain_col, Rainfall_col, Longrainfall_col, Snowmelt_col,Rainsnow_col))+ylab('Process contribution [%]')+xlab('Catchments')+theme_minimal()+theme(legend.position = 'bottom')+strip_theme+facet_wrap(~clim_index, scales = 'free_x')
+p_contr = ggplot(tempmelt, aes(cat_no, 100*value, fill = variable))+geom_bar(stat = 'identity', width=1)+scale_fill_manual(name = "Flood process", labels = process_fulllabel, values = c(Excessrain_col, Rainfall_col, Longrainfall_col, Snowmelt_col,Rainsnow_col))+ylab('Process contribution [%]')+xlab('Catchments')+theme_minimal()+
+  theme(panel.grid.minor  = element_blank(), panel.grid.major = element_blank())+
+  strip_theme+facet_wrap(~clim_index, scales = 'free_x')
 ggsave(filename = paste0(plot_path, "CAMELS_process_distribution_barplot.pdf"), dpi = 'retina', width = 10, height =4)
+
+
+#Processs event numbers
+count_event_table_POT3 = count_event_table[[2]][,-1]
+rownames(count_event_table_POT3) = count_event_table[[2]][,1]
+count_event_table_POT3_melt = melt(count_event_table_POT3)
+count_event_table_POT3_melt[, "X1"] = factor(count_event_table_POT3_melt$X1, levels = clim_label_vec)
+count_event_table_POT3_melt[, "X2"] = factor(count_event_table_POT3_melt$X2, levels = level_vec_class)
+
+
+
+p_events = ggplot(count_event_table_POT3_melt, aes(X2, value, fill = X2))+geom_bar(stat = 'identity')+scale_fill_manual(name = "Flood process", labels = process_fulllabel, values = c(Excessrain_col, Rainfall_col, Longrainfall_col, Snowmelt_col,Rainsnow_col))+theme_bw()+theme(panel.border = element_blank(), panel.grid.minor  = element_blank(), panel.grid.major.x = element_blank(), axis.title.x = element_blank(), legend.position = 'none', axis.text.x = element_blank(), axis.ticks.x = element_blank())+strip_theme+facet_wrap(~X1,ncol = 3)+ylab('No. events')
+
+
+p_contr/p_events + plot_layout(guides = "collect")+plot_annotation(tag_levels = 'A')
+
+ggsave(filename = paste0(plot_path, "CAMELS_process_distribution_barplot.pdf"), dpi = 'retina', width = 10, height =6)
+
+
+
 
 #for POT1
 tempmelt = do.call(rbind, lapply(clim_label_vec, function(clim){
@@ -951,7 +974,7 @@ ggsave(filename = paste0(plot_path, "CAMELS_process_distribution_barplot_POT1.pd
 
 
 # Plot probability density distribution ---------------------------------------------------
-
+strip_theme2 = theme(strip.background = element_blank(), strip.text = element_text(face = 'bold'), strip.text.y = element_text(angle = 0), panel.grid.minor = element_blank(), panel.grid.major = element_blank())
 
 magn_plot_vsimple = lapply(event_based_magn, function(df){
   clim_plotdistlist_vsimple = lapply(colnames(attr_cont), function(tempvar){
@@ -976,7 +999,7 @@ magn_plot_vsimple = lapply(event_based_magn, function(df){
 
 xlab_info = xlab("Normalised attribute")
 ylab_info = ylab("ECDF")
-format_info = theme(legend.position = "none")
+format_info = theme(legend.position = "bottom")
 
 dist_list_1py = magn_plot_vsimple[[1]]
 dist_list_3py = magn_plot_vsimple[[2]]
@@ -998,7 +1021,7 @@ dev.off()
 
 #loco topo
 plotdf_temp = do.call(rbind, dist_list_1py[c(1:4)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme+facet_grid(attr~clim_class)
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_locotopo1.pdf"), dpi = 'retina', width = 7, height =7)
 #clim
 plotdf_temp = do.call(rbind, dist_list_1py[c(5:13)])
@@ -1021,23 +1044,23 @@ ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_geol1.pdf"), dpi = '
 #write plots POT3py to files ----
 #loco topo
 plotdf_temp = do.call(rbind, dist_list_3py[c(1:4)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme2+facet_grid(attr~clim_class, labeller = labeller(attr = attr_fulllabel[c(1:4)]))
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_locotopo3.pdf"), dpi = 'retina', width = 7, height =7)
 #clim
 plotdf_temp = do.call(rbind, dist_list_3py[c(5:13)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme2+facet_grid(attr~clim_class, labeller = labeller(attr = attr_fulllabel[c(5:13)]))
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_clim3.pdf"), dpi = 'retina', width = 7, height =10)
 #soils
 plotdf_temp = do.call(rbind, dist_list_3py[c(14:24)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme2+facet_grid(attr~clim_class, labeller = labeller(attr = attr_fulllabel[c(14:24)]))
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_soils3.pdf"), dpi = 'retina', width = 7, height =10)
 #vegetation
 plotdf_temp = do.call(rbind, dist_list_3py[c(25:29)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme2+facet_grid(attr~clim_class, labeller = labeller(attr = attr_fulllabel[c(25:29)]))
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_vege3.pdf"), dpi = 'retina', width = 7, height =7)
 #geology
 plotdf_temp = do.call(rbind, dist_list_3py[c(30:32)])
-ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+facet_grid(attr~clim_class)
+ggplot(plotdf_temp, aes(x, colour = ggg))+stat_ecdf(size = 0.8)+col_info+xlab_info+ylab_info+theme_bw()+scale_x_continuous(breaks = c(0.5, 1))+format_info+strip_theme2+facet_grid(attr~clim_class, labeller = labeller(attr = attr_fulllabel[c(30:32)]))
 ggsave(filename = paste0(plot_path, "CAMELS_dist_comparison_geol3.pdf"), dpi = 'retina', width = 7, height =7)
 
 # Plot difference in probability density distribution ---------------------------------------------------
@@ -1198,7 +1221,7 @@ ALE_R2 = merge(ALEdfagg, ablation_best_full[ablation_best_full$remove_group == '
 
 ALE_R2_temp = ALE_R2
 ALE_R2_temp[,'attr_label'] = rep(CAMELS_labels[-31], length.out = nrow(ALE_R2_temp))
-p_ALE_r2 = ggplot(ALE_R2_temp, aes(process, attr_label, col = val, size = r2_eval_temp))+geom_point()+scale_color_gradientn(colours=pals::brewer.blues(100), name = 'ALE')+scale_size(name = 'R2',range = c(1,5))+theme_bw()+def_theme+scale_x_discrete(labels = process_fulllabel)+facet_grid(group~clim, scales = 'free_y', space = 'free')+ggtitle('Summarised accumulated local affects')
+p_ALE_r2 = ggplot(ALE_R2_temp, aes(process, attr_label, col = val, size = r2_eval_temp))+geom_point()+scale_color_gradientn(colours=pals::brewer.blues(100), name = 'ALE')+scale_size(name = 'R2',range = c(1,5))+theme_bw()+def_theme+ylab("")+scale_x_discrete(labels = process_fulllabel)+facet_grid(group~clim, scales = 'free_y', space = 'free')+ggtitle('Summarised accumulated local affects')
 p_ALE_r2
 
 diff_df_3py_temp = diff_df_3py
@@ -1214,11 +1237,16 @@ ggsave(filename = paste0(plot_path, "CAMELS_importance_both_unequalsize.pdf"), d
 ALEdfagg_POT1[,"attr"] = factor(ALEdfagg_POT1$attr, levels = rev(unique(ALEdfagg_POT1$attr)))
 
 ALE_R2_POT1 = merge(ALEdfagg_POT1, ablation_best_full_POT1[ablation_best_full_POT1$remove_group == 'All',])
-p_ALE_r2_POT1 = ggplot(ALE_R2_POT1, aes(process, attr, col = val, size = r2_eval_temp))+geom_point()+scale_color_gradientn(colours=pals::brewer.blues(100), name = 'ALE')+scale_size(name = 'R2',range = c(1,5))+theme_bw()+def_theme+scale_x_discrete(labels = process_fulllabel)+facet_grid(group~clim, scales = 'free_y', space = 'free')+ggtitle('Summarised accumulated local affects')
+ALE_R2_POT1[,'attr_label'] = rep(CAMELS_labels[-31], length.out = nrow(ALE_R2_POT1))
+
+p_ALE_r2_POT1 = ggplot(ALE_R2_POT1, aes(process, attr_label, col = val, size = r2_eval_temp))+geom_point()+scale_color_gradientn(colours=pals::brewer.blues(100), name = 'ALE')+scale_size(name = 'R2',range = c(1,5))+theme_bw()+def_theme+scale_x_discrete(labels = process_fulllabel)+ylab("")+facet_grid(group~clim, scales = 'free_y', space = 'free')+ggtitle('Summarised accumulated local affects')
 p_ALE_r2_POT1
 
 
-p_diff_event_POT1 = ggplot(diff_df_1py, aes(process, attr, col = mean_val, size = event_count))+geom_point()+theme_bw()+scale_colour_gradient2(name = "Mean diff.", limits = c(-0.25, 0.25))+scale_size(range = c(1,5), limits = range(diff_df_1py$event_count), name = "# events", breaks = c(500, 2500, 5000))+theme(axis.text.x = element_text(angle = 45, hjust = 1),axis.title = element_blank(), panel.border = element_rect(colour = 'grey80'))+strip_theme+scale_x_discrete(labels = process_fulllabel)+facet_grid(char_group~clim, scales = "free_y", space = "free_y")+ggtitle('Mean difference in probability distribution')
+diff_df_1py_temp = diff_df_1py
+diff_df_1py_temp[,'attr_label'] = rep(CAMELS_labels, each = nrow(diff_df_1py_temp)/length(CAMELS_labels))
+
+p_diff_event_POT1 = ggplot(diff_df_1py_temp, aes(process, attr_label, col = mean_val, size = event_count))+geom_point()+theme_bw()+scale_colour_gradient2(name = "Mean diff.", limits = c(-0.25, 0.25))+scale_size(range = c(1,5), limits = range(diff_df_1py$event_count), name = "# events", breaks = c(500, 2500, 5000))+theme(axis.text.x = element_text(angle = 45, hjust = 1),axis.title = element_blank(), panel.border = element_rect(colour = 'grey80'))+strip_theme+scale_x_discrete(labels = process_fulllabel)+facet_grid(char_group~clim, scales = "free_y", space = "free_y")+ggtitle('Mean difference in probability distribution')
 p_diff_event_POT1 + p_ALE_r2_POT1 + plot_layout()+ plot_annotation(tag_levels = 'A')
 ggsave(filename = paste0(plot_path, "CAMELS_importance_both_unequalsize_POT1.pdf"), dpi = 'retina', width = 12, height =7)
 
