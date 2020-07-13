@@ -7,9 +7,7 @@ function_file_global_flood_classification.R contains the code for the global flo
 
 Data requirements to execute the code: 
 - CAMELS dataset by Addor et al. (2017) available at https://ral.ucar.edu/solutions/products/camels
-- aws0200NATSGO.csv Available Water Storage data calculated for the CAMELS catchments with data from the NATSGO soil data base
-- elongratio_CAMELS.Rdata Elongation Ratio calculate for the CAMELS catchments
-
+- aws0200NATSGO.csv Available Water Storage data calculated for the CAMELS catchments with data from the NATSGO soil data base. Available as supplemental data for the article submitted to Water Resources Research.
 
 
 Addor, N., Newman, A.J., Mizukami, N. and Clark, M.P., 2017. The CAMELS data set: catchment attributes and meteorology for large-sample studies. Hydrology and Earth System Sciences (HESS), 21(10), pp.5293-5313.
